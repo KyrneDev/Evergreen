@@ -7,8 +7,10 @@ use Flarum\Api\Event\WillSerializeData;
 use Flarum\Api\Serializer\PostSerializer;
 use Flarum\Event\ConfigureNotificationTypes;
 use Flarum\Event\ConfigurePostsQuery;
+use Flarum\Event\ScopeModelVisibility;
 use Flarum\Extend;
 use Flarum\Formatter\Event\Rendering;
+use function GuzzleHttp\Psr7\str;
 use Kyrne\Evergreen\Api\Controller\ListTreePostController;
 use Kyrne\Evergreen\ConfigureMentions;
 use Kyrne\Evergreen\Notification\PostMentionedBlueprint;
@@ -42,6 +44,12 @@ return [
         ->listen(ConfigureNotificationTypes::class, function (ConfigureNotificationTypes $event) {
             $event->add(PostMentionedBlueprint::class, PostSerializer::class, ['alert']);
             $event->add(UserMentionedBlueprint::class, PostSerializer::class, ['alert']);
+        })
+        ->listen(ScopeModelVisibility::class, function(ScopeModelVisibility $event) {
+            $sql = $event->query->toSql();
+            if (stripos($sql, 'from `posts') && !stripos($sql, 'update') && !stripos($sql, 'delete')  && strpos($sql, 'id')) {
+                $event->query->where('reply_to', 0);
+            }
         }),
 
     (new Extend\Formatter)
@@ -54,6 +62,7 @@ return [
 
     function (Dispatcher $events, Factory $views) {
         $events->subscribe(Listener\AddPostMentionedByRelationship::class);
+        $events->subscribe(Listener\HandleDeletions::class);
 
         $events->listen(
             [Deleted::class, Hidden::class],

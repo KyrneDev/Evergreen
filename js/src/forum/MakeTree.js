@@ -1,9 +1,20 @@
-import {extend} from 'flarum/extend';
+import {extend, override} from 'flarum/extend';
 import Post from 'flarum/components/Post';
 import Button from 'flarum/components/Button';
+import icon from 'flarum/helpers/icon';
 import CommentPost from 'flarum/components/CommentPost';
 
 export default function MakeTree() {
+  override(Post.prototype, 'config', function() {
+    const $actions = this.$('.Post-actions');
+    const $controls = this.$('.Post-controls');
+
+    $controls.on('click tap', function() {
+      $(this).toggleClass('open');
+    });
+  });
+
+
   extend(Post.prototype, 'view', function (vdom) {
     const id = this.props.post.id();
     if (!app.cache.trees) {
@@ -15,9 +26,10 @@ export default function MakeTree() {
       app.cache.pushTree[id] = 0;
     }
 
-    if (app.cache.trees[id]) {
+    if (app.cache.trees[id].length > 1) {
       vdom.children.push(
         <div className='CommentTree' id={id}>
+          {icon('fas fa-reply')}
           {app.cache.trees[id].filter((thing, index, self) => self.findIndex(t => t.id() === thing.id()) === index)
             .sort((a, b) => {
               return a.createdAt() - b.createdAt();
