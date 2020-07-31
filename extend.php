@@ -10,7 +10,6 @@ use Flarum\Event\ConfigurePostsQuery;
 use Flarum\Event\ScopeModelVisibility;
 use Flarum\Extend;
 use Flarum\Formatter\Event\Rendering;
-use function GuzzleHttp\Psr7\str;
 use Kyrne\Evergreen\Api\Controller\ListTreePostController;
 use Kyrne\Evergreen\ConfigureMentions;
 use Kyrne\Evergreen\Notification\PostMentionedBlueprint;

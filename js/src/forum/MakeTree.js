@@ -26,7 +26,7 @@ export default function MakeTree() {
       app.cache.pushTree[id] = 0;
     }
 
-    if (app.cache.trees[id].length > 1) {
+    if (app.cache.trees[id].length > 0) {
       vdom.children.push(
         <div className='CommentTree' id={id}>
           {icon('fas fa-reply')}
