@@ -37,6 +37,12 @@ class ListTreePostController extends AbstractListController
         'discussion'
     ];
 
+    public $optionalInclude = [
+        'user.ranks',
+        'upvotes',
+        'downvotes'
+    ];
+
     /**
      * {@inheritdoc}
      */
