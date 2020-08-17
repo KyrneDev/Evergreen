@@ -83,6 +83,10 @@ app.initializers.add('kyrne-everygreen', () => {
       .createRecord('posts')
       .save(data)
       .then((post) => {
+
+        if (this.draft) {
+          this.draft.delete();
+        }
         // If we're currently viewing the discussion which this reply was made
         // in, then we can update the post stream and scroll to the post.
         if (app.viewingDiscussion(discussion)) {

@@ -25,6 +25,7 @@ use Flarum\User\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\View\Factory;
 use Kyrne\Evergreen\Listener;
+use Kyrne\ExtCore\Extend\AddKyrneCore;
 
 return [
     (new Extend\Frontend('forum'))
@@ -50,6 +51,8 @@ return [
                 $event->query->where('reply_to', 0);
             }
         }),
+
+    new AddKyrneCore(),
 
     (new Extend\Formatter)
         ->configure(ConfigureMentions::class),

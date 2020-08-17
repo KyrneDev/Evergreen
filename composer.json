@@ -1,6 +1,6 @@
 {
     "name": "kyrne/evergreen",
-    "description": "1 level reply trees for Flarum",
+    "description": "1 level reply trees for Flarum.",
     "keywords": [
         "flarum",
 		"reply",
@@ -9,7 +9,8 @@
     "type": "flarum-extension",
     "license": "GPL-3.0-or-later",
     "require": {
-        "flarum/core": "^0.1.0-beta-13"
+        "flarum/core": "^0.1.0-beta-13",
+        "kyrne/ext-core": "*@dev"
     },
     "replace": {
         "flarum/mentions": "*"
@@ -28,11 +29,17 @@
     },
     "extra": {
         "flarum-extension": {
-            "title": "Kyrne Evergreen",
-            "icon": {
-                "name": "fas fa-tree",
-                "background": "linear-gradient(90deg, rgba(2,0,36,1) 0%, rgba(224,64,251,1) 0%, rgba(33,150,243,1) 100%)",
-                "color": "#fff"
+            "title": "Evergreen",
+            "icon": "fas fa-tree",
+            "info": {
+                "link": "",
+                "location": "Flarum Commmunity"
+            },
+            "extra": {
+                "icon": "fab fa-github",
+                "link": "https://github.com/kyrnedev/evergreen",
+                "title": "Source",
+                "location": "Github"
             }
         }
     }
