@@ -40,7 +40,8 @@ class ListTreePostController extends AbstractListController
     public $optionalInclude = [
         'user.ranks',
         'upvotes',
-        'downvotes'
+        'downvotes',
+        'reactions'
     ];
 
     /**

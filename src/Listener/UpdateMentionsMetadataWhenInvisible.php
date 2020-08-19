@@ -9,7 +9,7 @@
 
 namespace Kyrne\Evergreen\Listener;
 
-use Flarum\Mentions\Notification\UserMentionedBlueprint;
+use Kyrne\Evergreen\Notification\UserMentionedBlueprint;
 use Flarum\Notification\NotificationSyncer;
 use Flarum\Post\Event\Deleted;
 use Flarum\Post\Event\Hidden;
