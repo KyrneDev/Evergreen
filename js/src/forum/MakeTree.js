@@ -54,7 +54,7 @@ export default function MakeTree() {
           icon: 'fas fa-caret-down',
           children: app.translator.trans('kyrne-evergreen.forum.post.show_' + (count > 1 ? 'replies' : 'reply'), {count}),
           onclick: () => {
-            app.store.find('trees', id, {include})
+            app.store.find('trees', id, {include: include.replace(/,\s*$/, "")})
               .then(response => {
                 delete response.payload;
                 [].push.apply(app.cache.trees[id], response);
