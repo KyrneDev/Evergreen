@@ -41,13 +41,20 @@ export default function MakeTree() {
     }
     if (this.props.post.replyCount() > app.cache.trees[id].length - app.cache.pushTree[id] || (app.cache.trees[id].length === 0 && this.props.post.replyCount())) {
       const count = this.props.post.replyCount() - app.cache.trees[id].length + app.cache.pushTree[id];
+      let include = 'discussion,user,user.groups,hiddenUser,editedUser,';
+      if (app.initializers.has('fof-gamification')) {
+        include += 'user.ranks,upvotes,';
+      }
+      if (app.initializers.has('fof/reactions')) {
+        include += 'reactions';
+      }
       vdom.children.push(
         Button.component({
           className: 'Button Button--link Evergreen--show',
           icon: 'fas fa-caret-down',
           children: app.translator.trans('kyrne-evergreen.forum.post.show_' + (count > 1 ? 'replies' : 'reply'), {count}),
           onclick: () => {
-            app.store.find('trees', id)
+            app.store.find('trees', id, {include})
               .then(response => {
                 delete response.payload;
                 [].push.apply(app.cache.trees[id], response);

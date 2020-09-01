@@ -14,7 +14,10 @@ namespace Kyrne\Evergreen\Api\Controller;
 
 use Flarum\Api\Controller\AbstractListController;
 use Flarum\Api\Serializer\PostSerializer;
+use Flarum\Discussion\Command\ReadDiscussion;
+use Flarum\Forum\Content\Discussion;
 use Flarum\Post\PostRepository;
+use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Support\Arr;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
@@ -34,7 +37,8 @@ class ListTreePostController extends AbstractListController
         'user.groups',
         'editedUser',
         'hiddenUser',
-        'discussion'
+        'discussion',
+
     ];
 
     public $optionalInclude = [
@@ -55,10 +59,16 @@ class ListTreePostController extends AbstractListController
     protected $posts;
 
     /**
+     * @var Dispatcher
+     */
+    protected $bus;
+
+    /**
      * @param \Flarum\Post\PostRepository $posts
      */
-    public function __construct(PostRepository $posts)
+    public function __construct(PostRepository $posts, Dispatcher $bus)
     {
+        $this->bus = $bus;
         $this->posts = $posts;
     }
 
@@ -80,6 +90,12 @@ class ListTreePostController extends AbstractListController
         $query->where('reply_to', $id)->skip($offset)->take($limit);
 
         $posts = $this->posts->findByIds($query->pluck('id')->all());
+
+        $discussionId = $posts->first()->discussion_id;
+
+        $this->bus->dispatch(
+            new ReadDiscussion($discussionId, $actor, $posts->last()->number)
+        );
 
         return $posts->load($include);
     }
