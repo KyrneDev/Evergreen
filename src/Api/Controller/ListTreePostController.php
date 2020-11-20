@@ -92,11 +92,14 @@ class ListTreePostController extends AbstractListController
         $posts = $this->posts->findByIds($query->pluck('id')->all());
 
         $discussionId = $posts->first()->discussion_id;
-
-        $this->bus->dispatch(
-            new ReadDiscussion($discussionId, $actor, $posts->last()->number)
-        );
-
+		
+		
+		if (!$actor->isGuest()) {
+			$this->bus->dispatch(
+				new ReadDiscussion($discussionId, $actor, $posts->last()->number)
+			);
+		}
+		
         return $posts->load($include);
     }
 
