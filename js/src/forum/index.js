@@ -31,40 +31,36 @@ app.initializers.add('kyrne-everygreen', () => {
   Post.prototype.replyCount = Model.attribute('replyCount');
 
   DiscussionControls.replyAction = function (goToLast, forceRefresh, replyTo) {
-    const deferred = m.deferred();
+    return new Promise((resolve, reject) => {
+      if (app.session.user) {
+        if (this.canReply()) {
+          if (!app.composer.composingReplyTo(this) || forceRefresh) {
+            app.composer.load(ReplyComposer, {
+              user: app.session.user,
+              discussion: this,
+              replyTo
+            });
+          }
+          app.composer.show();
 
-    if (app.session.user) {
-      if (this.canReply()) {
-        let component = app.composer.component;
-        if (!app.composingReplyTo(this) || forceRefresh) {
-          component = new ReplyComposer({
-            user: app.session.user,
-            discussion: this,
-            replyTo
-          });
-          app.composer.load(component);
+          if (goToLast && app.viewingDiscussion(this) && !app.composer.isFullScreen()) {
+            app.current.get('stream').goToNumber('reply');
+          }
+
+          return resolve(app.composer);
+        } else {
+          return reject();
         }
-        app.composer.show();
-
-        if (goToLast && app.viewingDiscussion(this) && !app.composer.isFullScreen()) {
-          app.current.stream.goToNumber('reply');
-        }
-
-        deferred.resolve(component);
-      } else {
-        deferred.reject();
       }
-    } else {
-      deferred.reject();
 
-      app.modal.show(new LogInModal());
-    }
+      app.modal.show(LogInModal);
 
-    return deferred.promise;
+      return reject();
+    });
   };
 
-  extend(ReplyComposer.prototype, 'init', function() {
-    this.replyTo = this.props.replyTo;
+  extend(ReplyComposer.prototype, 'oninit', function() {
+    this.replyTo = this.attrs.replyTo;
   });
 
   extend(ReplyComposer.prototype, 'data', function(data) {
@@ -72,7 +68,7 @@ app.initializers.add('kyrne-everygreen', () => {
   });
 
   override(ReplyComposer.prototype, 'onsubmit', function() {
-    const discussion = this.props.discussion;
+    const discussion = this.attrs.discussion;
 
     this.loading = true;
     m.redraw();
@@ -90,34 +86,38 @@ app.initializers.add('kyrne-everygreen', () => {
         // If we're currently viewing the discussion which this reply was made
         // in, then we can update the post stream and scroll to the post.
         if (app.viewingDiscussion(discussion)) {
-          if (this.props.replyTo) {
-            app.cache.trees[this.props.replyTo].push(post);
-            app.cache.pushTree[this.props.replyTo]++;
+          if (this.attrs.replyTo) {
+            app.cache.trees[this.attrs.replyTo].push(post);
+            app.cache.pushTree[this.attrs.replyTo]++;
             m.redraw();
           } else {
-            app.current.stream.update().then(() => app.current.stream.goToNumber(post.number()));
+            const stream = app.current.get('stream');
+            stream.update().then(() => stream.goToNumber(post.number()));
           }
         } else {
           // Otherwise, we'll create an alert message to inform the user that
           // their reply has been posted, containing a button which will
           // transition to their new post when clicked.
           let alert;
-          const viewButton = Button.component({
-            className: 'Button Button--link',
-            children: app.translator.trans('core.forum.composer_reply.view_button'),
-            onclick: () => {
-              m.route(app.route.post(post));
-              app.alerts.dismiss(alert);
+          const viewButton = Button.component(
+            {
+              className: 'Button Button--link',
+              onclick: () => {
+                m.route.set(app.route.post(post));
+                app.alerts.dismiss(alert);
+              },
             },
-          });
-          app.alerts.show(
-            (alert = new Alert({
+            app.translator.trans('core.forum.composer_reply.view_button')
+          );
+          alert = app.alerts.show(
+            {
               type: 'success',
-              children: app.translator.trans('core.forum.composer_reply.posted_message'),
               controls: [viewButton],
-            }))
+            },
+            app.translator.trans('core.forum.composer_reply.posted_message')
           );
         }
+
 
         app.composer.hide();
       }, this.loaded.bind(this));
@@ -163,16 +163,15 @@ app.initializers.add('kyrne-everygreen', () => {
   });
 
   // Add mentions tab in user profile
-  app.routes['user.mentions'] = {path: '/u/:username/mentions', component: MentionsUserPage.component()};
-  extend(UserPage.prototype, 'navItems', function (items) {
+  app.routes['user.mentions'] = {path: '/u/:username/mentions', component: MentionsUserPage};
+  extend(UserPage.prototype, 'navItems', function(items) {
     const user = this.user;
     items.add('mentions',
       LinkButton.component({
-        href: app.route('user.mentions', {username: user.username()}),
+        href: app.route('user.mentions', {username: user.slug()}),
         name: 'mentions',
-        children: [app.translator.trans('flarum-mentions.forum.user.mentions_link')],
         icon: 'fas fa-at'
-      }),
+      }, app.translator.trans('flarum-mentions.forum.user.mentions_link')),
       80
     );
   });

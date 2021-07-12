@@ -125,8 +125,8 @@ export default function addComposerAutocomplete() {
             // post, then we can suggest other posts in the discussion to mention.
             // We will add the 5 most recent comments in the discussion which
             // match any username characters that have been typed.
-            const composerPost = composer.props.post;
-            const discussion = (composerPost && composerPost.discussion()) || composer.props.discussion;
+            const composerPost = composer.attrs.post;
+            const discussion = (composerPost && composerPost.discussion()) || composer.attrs.discussion;
             if (discussion) {
               discussion.posts()
                 .filter(post => post && post.contentType() === 'comment' && (!composerPost || post.number() < composerPost.number()))
@@ -148,7 +148,7 @@ export default function addComposerAutocomplete() {
             }
 
             if (suggestions.length) {
-              dropdown.props.items = suggestions;
+              dropdown.attrs.items = suggestions;
               m.render($container[0], dropdown.render());
 
               dropdown.show();

@@ -9,8 +9,7 @@
     "type": "flarum-extension",
     "license": "GPL-3.0-or-later",
     "require": {
-        "flarum/core": "^0.1.0-beta-13",
-        "kyrne/ext-core": "*@dev"
+        "flarum/core": "^1.0.2"
     },
     "conflict": {
         "flarum/mentions": "*"
@@ -30,16 +29,10 @@
     "extra": {
         "flarum-extension": {
             "title": "Evergreen",
-            "icon": "fas fa-tree",
-            "info": {
-                "link": "https://discuss.flarum.org/d/24695-evergreen-comment-trees-for-flarum",
-                "location": "Flarum Commmunity"
-            },
-            "extra": {
-                "icon": "fab fa-github",
-                "link": "https://github.com/kyrnedev/evergreen",
-                "title": "Source",
-                "location": "Github"
+            "icon": {
+                "name": "fas fa-tree",
+                "background": "linear-gradient(90deg, rgba(2,0,36,1) 0%, rgba(224,64,251,1) 0%, rgba(33,150,243,1) 100%)",
+                "color": "#FFF"
             }
         }
     }

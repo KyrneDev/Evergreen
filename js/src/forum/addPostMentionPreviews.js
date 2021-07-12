@@ -4,21 +4,22 @@ import PostPreview from 'flarum/components/PostPreview';
 import LoadingIndicator from 'flarum/components/LoadingIndicator';
 
 export default function addPostMentionPreviews() {
-  extend(CommentPost.prototype, 'config', function() {
-    const contentHtml = this.props.post.contentHtml();
+  function addPreviews() {
+    const contentHtml = this.attrs.post.contentHtml();
 
     if (contentHtml === this.oldPostContentHtml || this.isEditing()) return;
 
     this.oldPostContentHtml = contentHtml;
 
-    const parentPost = this.props.post;
+    const parentPost = this.attrs.post;
     const $parentPost = this.$();
 
-    this.$('.UserMention, .PostMention').each(function() {
-      m.route.call(this, this, false, {}, {attrs: {href: this.getAttribute('href')}});
+    this.$().on('click', '.UserMention:not(.UserMention--deleted), .PostMention:not(.PostMention--deleted)', function (e) {
+      m.route.set(this.getAttribute('href'));
+      e.preventDefault();
     });
 
-    this.$('.PostMention').each(function() {
+    this.$('.PostMention:not(.PostMention--deleted)').each(function() {
       const $this = $(this);
       const id = $this.data('id');
       let timeout;
@@ -102,7 +103,14 @@ export default function addPostMentionPreviews() {
         }
       };
 
-      $this.on('touchstart', e => e.preventDefault());
+      // On a touch (mobile) device we cannot hover the link to reveal the preview.
+      // Instead we cancel the navigation so that a click reveals the preview.
+      // Users can then click on the preview to go to the post if desired.
+      $this.on('touchend', e => {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+      });
 
       $this.add($preview).hover(
         () => {
@@ -122,5 +130,8 @@ export default function addPostMentionPreviews() {
 
       $(document).on('touchend', hidePreview);
     });
-  });
+  }
+
+  extend(CommentPost.prototype, 'oncreate', addPreviews);
+  extend(CommentPost.prototype, 'onupdate', addPreviews);
 }

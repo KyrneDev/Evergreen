@@ -14,6 +14,7 @@ namespace Kyrne\Evergreen\Listener;
 
 use Flarum\Post\Event\Saving;
 use Flarum\Post\Post;
+use Illuminate\Support\Arr;
 
 class SaveTreeList
 {
@@ -22,7 +23,7 @@ class SaveTreeList
      */
     public function handle(Saving $event)
     {
-        $data = array_get($event->data, 'attributes.replyTo');
+        $data = Arr::get($event->data, 'attributes.replyTo');
         if ($data) {
             $replyPost = Post::find($data);
 

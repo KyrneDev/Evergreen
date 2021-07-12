@@ -2,6 +2,7 @@ import { extend } from 'flarum/extend';
 import Model from 'flarum/Model';
 import Post from 'flarum/models/Post';
 import CommentPost from 'flarum/components/CommentPost';
+import Link from 'flarum/components/Link';
 import PostPreview from 'flarum/components/PostPreview';
 import punctuateSeries from 'flarum/helpers/punctuateSeries';
 import username from 'flarum/helpers/username';
@@ -10,66 +11,74 @@ import icon from 'flarum/helpers/icon';
 export default function addMentionedByList() {
   Post.prototype.mentionedBy = Model.hasMany('mentionedBy');
 
-  extend(CommentPost.prototype, 'footerItems', function(items) {
-    const post = this.props.post;
+  function hidePreview() {
+    this.$('.Post-mentionedBy-preview')
+      .removeClass('in')
+      .one('transitionend', function() { $(this).hide(); });
+  }
+
+  extend(CommentPost.prototype, 'oncreate', function() {
+    let timeout;
+    const post = this.attrs.post;
     const replies = post.mentionedBy();
 
     if (replies && replies.length) {
-      // If there is only one reply, and it's adjacent to this post, we don't
-      // really need to show the list.
-      if (replies.length === 1 && replies[0].number() === post.number() + 1) {
-        return;
+      const $preview = $('<ul class="Dropdown-menu Post-mentionedBy-preview fade"/>');
+      this.$().append($preview);
+
+      const $parentPost = this.$();
+      const $this = this.$('.Post-mentionedBy');
+
+      const showPreview = () => {
+        if (!$preview.hasClass('in') && $preview.is(':visible')) return;
+
+        // When the user hovers their mouse over the list of people who have
+        // replied to the post, render a list of reply previews into a
+        // popup.
+        m.render($preview[0], replies.map(reply => (
+          <li data-number={reply.number()}>
+            {PostPreview.component({
+              post: reply,
+              onclick: hidePreview.bind(this)
+            })}
+          </li>
+        )));
+
+        $preview.show()
+          .css('top', $this.offset().top - $parentPost.offset().top + $this.outerHeight(true))
+          .css('left', $this.offsetParent().offset().left - $parentPost.offset().left)
+          .css('max-width', $parentPost.width());
+
+        setTimeout(() => $preview.off('transitionend').addClass('in'));
       }
 
-      const hidePreview = () => {
-        this.$('.Post-mentionedBy-preview')
-          .removeClass('in')
-          .one('transitionend', function() { $(this).hide(); });
-      };
-
-      const config = function(element, isInitialized) {
-        if (isInitialized) return;
-
-        const $this = $(element);
-        let timeout;
-
-        const $preview = $('<ul class="Dropdown-menu Post-mentionedBy-preview fade"/>');
-        $this.append($preview);
-
-        $this.children().hover(function() {
+      $this.add($preview).hover(
+        () => {
           clearTimeout(timeout);
-          timeout = setTimeout(function() {
-            if (!$preview.hasClass('in') && $preview.is(':visible')) return;
-
-            // When the user hovers their mouse over the list of people who have
-            // replied to the post, render a list of reply previews into a
-            // popup.
-            m.render($preview[0], replies.map(reply => (
-              <li data-number={reply.number()}>
-                {PostPreview.component({
-                  post: reply,
-                  onclick: hidePreview
-                })}
-              </li>
-            )));
-            $preview.show();
-            setTimeout(() => $preview.off('transitionend').addClass('in'));
-          }, 500);
-        }, function() {
+          timeout = setTimeout(showPreview, 250);
+        },
+        () => {
           clearTimeout(timeout);
           timeout = setTimeout(hidePreview, 250);
-        });
+        }
+      );
 
-        // Whenever the user hovers their mouse over a particular name in the
-        // list of repliers, highlight the corresponding post in the preview
-        // popup.
-        $this.find('.Post-mentionedBy-summary a').hover(function() {
-          $preview.find('[data-number="' + $(this).data('number') + '"]').addClass('active');
-        }, function() {
-          $preview.find('[data-number]').removeClass('active');
-        });
-      };
+      // Whenever the user hovers their mouse over a particular name in the
+      // list of repliers, highlight the corresponding post in the preview
+      // popup.
+      this.$().find('.Post-mentionedBy-summary a').hover(function() {
+        $preview.find('[data-number="' + $(this).data('number') + '"]').addClass('active');
+      }, function() {
+        $preview.find('[data-number]').removeClass('active');
+      });
+    }
+  });
 
+  extend(CommentPost.prototype, 'footerItems', function(items) {
+    const post = this.attrs.post;
+    const replies = post.mentionedBy();
+
+    if (replies && replies.length) {
       const users = [];
       const repliers = replies
         .sort(reply => reply.user() === app.session.user ? -1 : 0)
@@ -92,12 +101,11 @@ export default function addMentionedByList() {
           const user = reply.user();
 
           return (
-            <a href={app.route.post(reply)}
-               config={m.route}
-               onclick={hidePreview}
-               data-number={reply.number()}>
+            <Link href={app.route.post(reply)}
+                  onclick={hidePreview.bind(this)}
+                  data-number={reply.number()}>
               {app.session.user === user ? app.translator.trans('flarum-mentions.forum.post.you_text') : username(user)}
-            </a>
+            </Link>
           );
         });
 
@@ -108,15 +116,15 @@ export default function addMentionedByList() {
         const count = repliers.length - names.length;
 
         names.push(
-          app.translator.transChoice('flarum-mentions.forum.post.others_text', count, {count})
+          app.translator.trans('flarum-mentions.forum.post.others_text', {count})
         );
       }
 
       items.add('replies',
-        <div className="Post-mentionedBy" config={config}>
+        <div className="Post-mentionedBy">
           <span className="Post-mentionedBy-summary">
             {icon('fas fa-reply')}
-            {app.translator.transChoice('flarum-mentions.forum.post.mentioned_by' + (repliers[0].user() === app.session.user ? '_self' : '') + '_text', names.length, {
+            {app.translator.trans('flarum-mentions.forum.post.mentioned_by' + (repliers[0].user() === app.session.user ? '_self' : '') + '_text', {
               count: names.length,
               users: punctuateSeries(names)
             })}

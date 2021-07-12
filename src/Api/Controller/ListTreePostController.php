@@ -89,17 +89,17 @@ class ListTreePostController extends AbstractListController
 
         $query->where('reply_to', $id)->skip($offset)->take($limit);
 
-        $posts = $this->posts->findByIds($query->pluck('id')->all());
+        $posts = $this->posts->query()->whereIn('id', $query->pluck('id')->all())->get();
 
         $discussionId = $posts->first()->discussion_id;
-		
-		
+
+
 		if (!$actor->isGuest()) {
 			$this->bus->dispatch(
 				new ReadDiscussion($discussionId, $actor, $posts->last()->number)
 			);
 		}
-		
+
         return $posts->load($include);
     }
 

@@ -7,13 +7,14 @@
  * LICENSE file that was distributed with this source code.
  */
 
-namespace Kyrne\Evergreen\Listener;
+namespace Kyrne\Evergreen;
 
 use Flarum\Api\Controller;
-use Flarum\Api\Event\WillSerializeData;
+use Flarum\Http\RequestUtil;
 use Flarum\Post\CommentPost;
 use Flarum\Post\PostRepository;
 use Illuminate\Database\Eloquent\Collection;
+use Psr\Http\Message\ServerRequestInterface;
 
 class FilterVisiblePosts
 {
@@ -38,24 +39,26 @@ class FilterVisiblePosts
      * additional posts so that the user can't see any posts which they don't
      * have access to.
      *
-     * @param WillSerializeData $event
+     * @param Controller\AbstractSerializeController $controller
+     * @param mixed $data
      */
-    public function handle(WillSerializeData $event)
+    public function __invoke(Controller\AbstractSerializeController $controller, $data, ServerRequestInterface $request)
     {
         // Firstly we gather a list of posts contained within the API document.
         // This will vary according to the API endpoint that is being accessed.
-        if ($event->isController(Controller\ShowDiscussionController::class)) {
-            $posts = $event->data->posts;
-        } elseif ($event->isController(Controller\ShowPostController::class)
-            || $event->isController(Controller\CreatePostController::class)
-            || $event->isController(Controller\UpdatePostController::class)) {
-            $posts = [$event->data];
-        } elseif ($event->isController(Controller\ListPostsController::class)) {
-            $posts = $event->data;
+        if ($controller instanceof Controller\ShowDiscussionController) {
+            $posts = $data->posts;
+        } elseif ($controller instanceof Controller\ShowPostController
+            || $controller instanceof Controller\CreatePostController
+            || $controller instanceof Controller\UpdatePostController) {
+            $posts = [$data];
+        } elseif ($controller instanceof Controller\ListPostsController) {
+            $posts = $data;
         }
 
         if (isset($posts)) {
             $posts = new Collection($posts);
+            $actor = RequestUtil::getActor($request);
 
             $posts = $posts->filter(function ($post) {
                 return $post instanceof CommentPost;
@@ -64,7 +67,7 @@ class FilterVisiblePosts
             // Load all of the users that these posts mention. This way the data
             // will be ready to go when we need to sub in current usernames
             // during the rendering process.
-            $posts->load(['mentionsUsers', 'mentionsPosts.user']);
+            $posts->loadMissing(['mentionsUsers', 'mentionsPosts.user', 'mentionedBy']);
 
             // Construct a list of the IDs of all of the posts that these posts
             // have been mentioned in. We can then filter this list of IDs to
@@ -75,7 +78,7 @@ class FilterVisiblePosts
                 $ids = array_merge($ids, $post->mentionedBy->pluck('id')->all());
             }
 
-            $ids = $this->posts->filterVisibleIds($ids, $event->actor);
+            $ids = $this->posts->filterVisibleIds($ids, $actor);
 
             // Finally, go back through each of the posts and filter out any
             // of the posts in the relationship data that we now know are
